@@ -26,8 +26,8 @@ jobs:
     - name: 3. Build project with Maven
       run: mvn clean package -DskipTests
       # 💡 SỬA LỖI Ở ĐÂY:
-      # Trỏ đến đúng thư mục chứa pom.xml
-      working-directory: ./ldx-insight-backend 
+      # Trỏ đến đúng thư mục con 2 cấp, nơi chứa pom.xml
+      working-directory: ./backend/ldx-insight-backend 
         
     # ---------------------------------
     # ----- PHẦN CD (Deploy Lên EC2) -----
@@ -41,7 +41,7 @@ jobs:
         key: ${{ secrets.EC2_PRIVATE_KEY }}
         port: 22
         # Lấy file JAR từ đúng thư mục 'target'
-        source: "ldx-insight-backend/target/ldx-insight-backend-*.jar" 
+        source: "backend/ldx-insight-backend/target/ldx-insight-backend-*.jar" 
         target: "/home/${{ secrets.EC2_USERNAME }}/app" 
 
     - name: 5. Run deploy script on EC2
