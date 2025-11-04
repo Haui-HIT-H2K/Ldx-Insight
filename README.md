@@ -40,7 +40,7 @@ graph TD;
     B["B. Python Service"];
     
     %% ---- 3. Cơ sở dữ liệu ----
-    subgraph "Cơ sở dữ liệu"
+    subgraph "Nền tảng Platform - Open Linked Hub"
         C["MongoDB"];
     end
 
@@ -49,7 +49,7 @@ graph TD;
 
 
     %% ---- 6. Ứng dụng Demo ----
-    J["Open Linked Hub"];
+    J[" Dashboard - Open Linked Hub"];
     K["Mô hình học máy chuẩn đoán và đề xuất"]
 
     %% ---- ĐỊNH NGHĨA LUỒNG DỮ LIỆU ----
