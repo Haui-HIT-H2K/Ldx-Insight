@@ -1,76 +1,63 @@
-# Tên của quy trình CI/CD
 name: Deploy Backend to EC2
 
-# Kích hoạt quy trình này khi có code được đẩy lên nhánh 'main'
 on:
   push:
     branches:
-      - main # (Lưu ý: Đổi thành 'master' nếu tên nhánh chính của bạn là 'master')
+      - main
 
 jobs:
-  # Tên của job (công việc)
   deploy:
-    # Chạy trên một máy ảo Ubuntu do GitHub cung cấp
     runs-on: ubuntu-latest
-
+    
     steps:
-      # ---------------------------------
-      # ----- PHẦN CI (Build Code) -----
-      # ---------------------------------
+    # ---------------------------------
+    # ----- PHẦN CI (Build Code) -----
+    # ---------------------------------
+    
+    - name: 1. Checkout code
+      uses: actions/checkout@v4
 
-      - name: 1. Checkout code
-        # Tải code từ repo của bạn vào máy ảo
-        uses: actions/checkout@v4
+    - name: 2. Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'corretto'
 
-      - name: 2. Set up JDK 17
-        # Cài đặt Java 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: "17"
-          distribution: "corretto" # Dùng Java Corretto của Amazon
+    - name: 3. Build project with Maven
+      run: mvn clean package -DskipTests
+      # 💡 SỬA LỖI Ở ĐÂY:
+      # Trỏ đến đúng thư mục chứa pom.xml
+      working-directory: ./ldx-insight-backend 
+        
+    # ---------------------------------
+    # ----- PHẦN CD (Deploy Lên EC2) -----
+    # ---------------------------------
+    
+    - name: 4. Copy JAR file to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        port: 22
+        # Lấy file JAR từ đúng thư mục 'target'
+        source: "ldx-insight-backend/target/ldx-insight-backend-*.jar" 
+        target: "/home/${{ secrets.EC2_USERNAME }}/app" 
 
-      - name: 3. Build project with Maven
-        # Chạy lệnh build Maven (bỏ qua test để build nhanh hơn)
-        run: mvn clean package -DskipTests
-        # Rất quan trọng: Chỉ định build trong thư mục 'backend'
-        working-directory: ./backend
-
-      # ---------------------------------
-      # ----- PHẦN CD (Deploy Lên EC2) -----
-      # ---------------------------------
-
-      - name: 4. Copy JAR file to EC2
-        # Sử dụng một Action có sẵn để sao chép file qua SSH (SCP)
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: 22
-          # Đường dẫn file JAR vừa build (trong thư mục backend)
-          source: "backend/target/ldx-insight-backend-*.jar"
-          # Đường dẫn tới thư mục 'app' bạn đã tạo trên EC2
-          target: "/home/${{ secrets.EC2_USERNAME }}/app"
-
-      - name: 5. Run deploy script on EC2
-        # Sử dụng một Action có sẵn để chạy lệnh trên EC2 qua SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: 22
-          # Đây là các lệnh sẽ chạy trên EC2 của bạn:
-          script: |
-            # 1. Dừng bất kỳ process Java cũ nào đang chạy
-            # '|| true' để lệnh không bị lỗi nếu không tìm thấy process nào
-            pkill -f ldx-insight-backend-.*.jar || true
-
-            # 2. Di chuyển vào thư mục ứng dụng
-            cd /home/${{ secrets.EC2_USERNAME }}/app
-
-            # 3. Khởi động ứng dụng mới (Không cần 'export' nữa)
-            # Ứng dụng sẽ tự động đọc các biến từ /etc/environment
-            # 'nohup' để ứng dụng tiếp tục chạy sau khi SSH ngắt kết nối
-            # '> app.log 2>&1 &' để ghi log và chạy ngầm
-            nohup java -jar ldx-insight-backend-*.jar > app.log 2>&1 &
+    - name: 5. Run deploy script on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        port: 22
+        script: |
+          # 1. Dừng process cũ
+          pkill -f ldx-insight-backend-.*.jar || true
+          
+          # 2. Di chuyển vào thư mục ứng dụng
+          cd /home/${{ secrets.EC2_USERNAME }}/app
+          
+          # 3. Khởi động ứng dụng mới
+          # Ứng dụng sẽ tự động đọc các biến từ /etc/environment
+          nohup java -jar ldx-insight-backend-*.jar > app.log 2>&1 &
