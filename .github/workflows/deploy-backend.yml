@@ -3,57 +3,57 @@ name: Deploy Backend to EC2
 on:
   push:
     branches:
-      - main # (Hoặc 'master')
+      - main 
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # --- CÁC BƯỚC 1-3 GIỮ NGUYÊN ---
-      - name: 1. Checkout code
-        uses: actions/checkout@v4
+    - name: 1. Checkout code
+      uses: actions/checkout@v4
 
-      - name: 2. Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: "17"
-          distribution: "corretto"
+    - name: 2. Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'corretto'
 
-      - name: 3. Build project with Maven
-        run: mvn clean package -DskipTests
-        working-directory: ./backend/ldx-insight-backend
+    - name: 3. Build project with Maven
+      run: mvn clean package -DskipTests
+      working-directory: ./backend/ldx-insight-backend 
+        
+    - name: 4. Prepare artifacts for deployment
+      run: |
+        # 1. Tạo thư mục trung chuyển
+        mkdir -p deploy_package
+        
+        # 2. Copy file JAR vào
+        cp backend/ldx-insight-backend/target/ldx-insight-backend-*.jar deploy_package/
+        
+        # 3. Copy kịch bản deploy vào
+        cp scripts/deploy.sh deploy_package/
 
-      # 💡 SỬA LỖI Ở BƯỚC 4
-      - name: 4. Copy deploy files to EC2
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: 22
-          # Copy 2 file: file JAR VÀ kịch bản deploy
-          source: |
-            backend/ldx-insight-backend/target/ldx-insight-backend-*.jar
-            scripts/deploy.sh
-          target: "/home/${{ secrets.EC2_USERNAME }}/app"
+    - name: 5. Copy deploy package to EC2
+      uses: appleboy/scp-action@v0.1.7
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        port: 22
+        source: "deploy_package/*" 
+        target: "/home/${{ secrets.EC2_USERNAME }}/app" 
 
-      # 💡 SỬA LỖI Ở BƯỚC 5
-      - name: 5. Run deploy script on EC2 (An toàn)
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_PRIVATE_KEY }}
-          port: 22
-          # Chỉ chạy kịch bản deploy.sh trong nền
-          script: |
-            # 1. Di chuyển vào thư mục ứng dụng
-            cd /home/${{ secrets.EC2_USERNAME }}/app
 
-            # 2. Cấp quyền thực thi cho kịch bản
-            chmod +x deploy.sh
+    - name: 6. Run deploy script on EC2
+      uses: appleboy/ssh-action@v1.0.3
+      with:
+        host: ${{ secrets.EC2_HOST }}
+        username: ${{ secrets.EC2_USERNAME }}
+        key: ${{ secrets.EC2_PRIVATE_KEY }}
+        port: 22
 
-            # 3. Chạy kịch bản trong NOHUP (tách biệt khỏi SSH)
-            # Ghi log của kịch bản này ra file deploy.log
-            nohup bash deploy.sh > deploy.log 2>&1 &
+        script: |
+          cd /home/${{ secrets.EC2_USERNAME }}/app
+          chmod +x deploy.sh
+          nohup bash deploy.sh > deploy.log 2>&1 &
