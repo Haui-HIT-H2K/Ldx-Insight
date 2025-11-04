@@ -3,7 +3,7 @@ name: Deploy Backend to EC2
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   deploy:
@@ -25,13 +25,8 @@ jobs:
         
     - name: 4. Prepare artifacts for deployment
       run: |
-        # 1. Tạo thư mục trung chuyển
         mkdir -p deploy_package
-        
-        # 2. Copy file JAR vào
         cp backend/ldx-insight-backend/target/ldx-insight-backend-*.jar deploy_package/
-        
-        # 3. Copy kịch bản deploy vào
         cp scripts/deploy.sh deploy_package/
 
     - name: 5. Copy deploy package to EC2
@@ -41,7 +36,7 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_PRIVATE_KEY }}
         port: 22
-        source: "deploy_package/*" 
+        source: "deploy_package/" 
         target: "/home/${{ secrets.EC2_USERNAME }}/app" 
 
 
@@ -52,8 +47,13 @@ jobs:
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_PRIVATE_KEY }}
         port: 22
-
         script: |
-          cd /home/${{ secrets.EC2_USERNAME }}/app
+          # 1. Di chuyển vào thư mục deploy mới
+          cd /home/${{ secrets.EC2_USERNAME }}/app/deploy_package
+          
+          # 2. Cấp quyền thực thi cho kịch bản
           chmod +x deploy.sh
+          
+          # 3. Chạy kịch bản trong NOHUP (tách biệt khỏi SSH)
+          # Ghi log của kịch bản này ra file deploy.log
           nohup bash deploy.sh > deploy.log 2>&1 &
