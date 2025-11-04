@@ -40,8 +40,8 @@ graph TD;
     B["B. Python Service"];
     
     %% ---- 3. Cơ sở dữ liệu ----
-    subgraph "Nền tảng Platform - Open Linked Hub"
-        C["MongoDB"];
+    subgraph "Nền tảng Platform"
+        C["Open Linked Hub"];
     end
 
     %% ---- 4. Logic Backend (Ý tưởng của bạn) ----
