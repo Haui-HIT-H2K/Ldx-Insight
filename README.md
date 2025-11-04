@@ -3,7 +3,7 @@
 **Đội:** Haui.HIT-H2K  
 **Trường:** Trường Công Nghệ Thông Tin và Truyền Thông (SICT) - Đại Học Công Nghiệp Hà Nội
 
-[![Documentation](https://img.shields.io/badge/Documentation-View_Site-blue?style=for-the-badge)](https://haui-hit-h2k.github.io/ldx-insight/)
+[![Documentation](https://img.shields.io/badge/Documentation-View_Site-blue?style=for-the-badge)](https://haui-hit-h2k.github.io/Ldx-Insight/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-yellow.svg?style=for-the-badge)](./LICENSE)
 
 Bài dự thi **hạng mục Phần mềm nguồn mở 2025** với chủ đề _“Ứng dụng Dữ liệu mở Liên kết hỗ trợ chẩn đoán và đề xuất với mô hình học máy phục vụ Chuyển đổi số Địa phương”_.
