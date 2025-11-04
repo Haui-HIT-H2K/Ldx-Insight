@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    
     - name: 1. Checkout code
       uses: actions/checkout@v4
 
@@ -34,26 +33,24 @@ jobs:
         source: "backend/ldx-insight-backend/target/ldx-insight-backend-*.jar" 
         target: "/home/${{ secrets.EC2_USERNAME }}/app" 
 
-    - name: 5. Run deploy script on EC2 (An toàn hơn)
+    - name: 5. Run deploy script on EC2 (Dùng kill nhẹ nhàng)
       uses: appleboy/ssh-action@v1.0.3
       with:
         host: ${{ secrets.EC2_HOST }}
         username: ${{ secrets.EC2_USERNAME }}
         key: ${{ secrets.EC2_PRIVATE_KEY }}
         port: 22
-        # Kịch bản (script) an toàn và chi tiết hơn:
         script: |
           echo "Bắt đầu kịch bản deploy..."
           
           # 1. Tìm PID của process Java cũ
-          # Dùng dấu ngoặc kép để tránh lỗi ký tự đại diện
           PID=$(pgrep -f "ldx-insight-backend-.*.jar")
           
           if [ -n "$PID" ]
           then
-            echo "Tìm thấy process cũ, PID: $PID. Đang dừng..."
-            # Dùng kill -9 (SIGKILL) để buộc dừng
-            kill -9 $PID
+            echo "Tìm thấy process cũ, PID: $PID. Đang dừng (graceful kill)..."
+            # Dùng kill (SIGTERM, 15) thay vì kill -9 (SIGKILL, 9)
+            kill $PID 
             # Chờ 5 giây để đảm bảo cổng 8080 được giải phóng
             sleep 5 
             echo "Đã dừng process cũ."
