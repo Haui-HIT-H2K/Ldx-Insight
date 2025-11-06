@@ -15,11 +15,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize; // <-- Import
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/datasets")
@@ -29,17 +28,14 @@ public class DatasetController {
 
     private final DatasetService datasetService;
 
-    @Operation(summary = "Tìm kiếm, lọc và phân trang Bộ dữ liệu",
-            description = "API này công khai, không cần xác thực.",
-            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
+    @Operation(summary = "Tìm kiếm (search) HOẶC lọc (filter) dataset")
     @GetMapping
+    @PreAuthorize("permitAll()")
     public ResponseEntity<Page<DatasetDto>> searchDatasets(
             @Parameter(description = "Từ khóa tìm kiếm (trong tiêu đề, mô tả)")
             @RequestParam(required = false) String q,
-
             @Parameter(description = "Lọc theo danh mục")
             @RequestParam(required = false) String category,
-
             @Parameter(description = "Phân trang (ví dụ: ?page=0&size=10&sort=viewCount,desc)")
             @PageableDefault(size = 10, sort = "createdAt") Pageable pageable) {
 
@@ -47,18 +43,49 @@ public class DatasetController {
         return ResponseEntity.ok(results);
     }
 
-    @Operation(summary = "Lấy chi tiết một Bộ dữ liệu",
-            description = "API này công khai, không cần xác thực.",
-            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
+    @Operation(summary = "Lấy chi tiết một Bộ dữ liệu bằng ID")
     @GetMapping("/{id}")
+    @PreAuthorize("permitAll()") 
     public ResponseEntity<DatasetDto> getDatasetById(@PathVariable String id) {
         return ResponseEntity.ok(datasetService.getDatasetById(id));
     }
 
+    @Operation(summary = "Lấy danh sách dataset CHỈ theo category (API riêng)")
+    @GetMapping("/category/{category}")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Page<DatasetDto>> getDatasetsByCategory(
+            @Parameter(description = "Tên category, ví dụ: 'Y tế'")
+            @PathVariable String category,
+            @Parameter(description = "Phân trang (ví dụ: ?page=0&size=10)")
+            Pageable pageable) {
+        
+        Page<DatasetDto> results = datasetService.getDatasetsByCategory(category, pageable);
+        return ResponseEntity.ok(results);
+    }
+    
+    @Operation(summary = "Ghi nhận 1 lượt xem (tăng view count)")
+    @PostMapping("/{id}/view")
+    @PreAuthorize("permitAll()") 
+    public ResponseEntity<Void> incrementView(@PathVariable String id) {
+        datasetService.incrementViewCount(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @Operation(summary = "Tải file và ghi nhận 1 lượt tải (tăng download count)")
+    @GetMapping("/{id}/download")
+    @PreAuthorize("permitAll()")
+    public ResponseEntity<Void> downloadAndIncrement(@PathVariable String id) {
+        String downloadUrl = datasetService.getDownloadUrlAndIncrement(id);
+        return ResponseEntity.status(HttpStatus.FOUND)
+                .location(URI.create(downloadUrl))
+                .build();
+    }
+
+
     @Operation(summary = "Tạo một Bộ dữ liệu mới (Yêu cầu xác thực)")
     @ApiResponse(responseCode = "201", description = "Tạo thành công")
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<DatasetDto> createDataset(@Valid @RequestBody CreateDatasetRequest request) {
         DatasetDto createdDataset = datasetService.createDataset(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdDataset);
@@ -66,7 +93,7 @@ public class DatasetController {
 
     @Operation(summary = "Cập nhật một Bộ dữ liệu (Yêu cầu xác thực)")
     @PutMapping("/{id}")
-    // @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<DatasetDto> updateDataset(
             @PathVariable String id,
             @Valid @RequestBody CreateDatasetRequest request) {
@@ -77,54 +104,9 @@ public class DatasetController {
     @Operation(summary = "Xóa một Bộ dữ liệu (Yêu cầu xác thực)")
     @ApiResponse(responseCode = "204", description = "Xóa thành công")
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')") 
     public ResponseEntity<Void> deleteDataset(@PathVariable String id) {
         datasetService.deleteDataset(id);
         return ResponseEntity.noContent().build();
-    }
-
-    @Operation(summary = "Ghi nhận 1 lượt xem (tăng view count)",
-            description = "API này công khai, không cần xác thực.",
-            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
-    @PostMapping("/{id}/view")
-    public ResponseEntity<Void> incrementView(@PathVariable String id) {
-        datasetService.incrementViewCount(id);
-        return ResponseEntity.ok().build();
-    }
-
-    @Operation(summary = "Tải file và ghi nhận 1 lượt tải (tăng download count)",
-            description = "API này công khai, không cần xác thực.",
-            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
-    @ApiResponse(responseCode = "302", description = "Chuyển hướng đến link tải file")
-    @GetMapping("/{id}/download")
-    public ResponseEntity<Void> downloadAndIncrement(@PathVariable String id) {
-        String downloadUrl = datasetService.getDownloadUrlAndIncrement(id);
-        return ResponseEntity.status(HttpStatus.FOUND)
-                .location(URI.create(downloadUrl))
-                .build();
-    }
-
-    @Operation(summary = "Lấy danh sách tất cả các 'thư mục' (categories) duy nhất",
-            description = "API này công khai, không cần xác thực.",
-            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
-    @GetMapping("/categories")
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<List<String>> getAllCategories() {
-        return ResponseEntity.ok(datasetService.getAllCategories());
-    }
-
-    @Operation(summary = "Lấy danh sách dataset CHỈ theo category (API riêng)",
-            description = "API này công khai, không cần xác thực.",
-            security = @SecurityRequirement(name = "bearerAuth", scopes = {}))
-    @GetMapping("/category/{category}") // <-- ĐƯỜNG DẪN MỚI
-    @PreAuthorize("permitAll()")
-    public ResponseEntity<Page<DatasetDto>> getDatasetsByCategory(
-            @Parameter(description = "Tên category, ví dụ: 'Y tế'")
-            @PathVariable String category,
-            @Parameter(description = "Phân trang (ví dụ: ?page=0&size=10)")
-            Pageable pageable) {
-
-        Page<DatasetDto> results = datasetService.getDatasetsByCategory(category, pageable);
-        return ResponseEntity.ok(results);
     }
 }

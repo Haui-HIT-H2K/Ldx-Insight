@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,8 +23,9 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @Operation(summary = "Đăng ký tài khoản mới (User)")
+    @Operation(summary = "Đăng ký tài khoản mới (Admin)")
     @PostMapping("/register")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request
     ) {
@@ -32,6 +34,7 @@ public class AuthController {
 
     @Operation(summary = "Đăng nhập và lấy JWT Token")
     @PostMapping("/login")
+    @PreAuthorize("permitAll()")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
