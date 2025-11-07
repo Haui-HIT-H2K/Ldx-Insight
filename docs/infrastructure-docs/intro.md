@@ -1,47 +1,87 @@
 ---
-sidebar_position: 1
+sidebar_position: 0
+title: Tổng quan Hạ tầng
 ---
 
-# Tutorial Intro
+# Tổng quan hạ tầng Ldx-Insight
 
-Let's discover **Docusaurus in less than 5 minutes**.
+Hệ thống **Ldx-Insight** được triển khai trên mô hình đa nền tảng nhằm đảm bảo tính linh hoạt, khả năng mở rộng và độ tin cậy. Phần này cung cấp cái nhìn tổng quan về các thành phần hạ tầng cốt lõi, cách chúng phối hợp với nhau và các tiêu chuẩn vận hành chung.
 
-## Getting Started
+## Mục tiêu hạ tầng
 
-Get started by **creating a new site**.
+- **Độ tin cậy cao**: Luôn sẵn sàng phục vụ người dùng với thời gian downtime tối thiểu.
+- **Hiệu năng ổn định**: Tối ưu tốc độ phản hồi cho cả API và giao diện web.
+- **Bảo mật**: Bảo vệ dữ liệu người dùng, hạn chế truy cập trái phép, mã hóa giao tiếp.
+- **Dễ mở rộng**: Có thể tăng quy mô nhanh chóng khi nhu cầu tăng.
+- **Tự động hóa**: CI/CD giúp triển khai nhanh, giảm thiểu lỗi thủ công.
 
-Or **try Docusaurus immediately** with **[docusaurus.new](https://docusaurus.new)**.
+## Các thành phần chính
 
-### What you'll need
+| Thành phần | Mô tả ngắn |
+|------------|-----------|
+| **CI/CD** | Automate build & deploy cho backend, frontend và docs (GitHub Actions, Vercel). |
+| **Cloud** | Triển khai trên AWS EC2, MongoDB Atlas, Cloudflare CDN và Vercel Edge Network. |
+| **Giám sát & Logging** | Sử dụng log app, deploy log, Cloudflare analytics; roadmap bổ sung CloudWatch/Prometheus. |
+| **Security** | TLS, Firewall, IP whitelist, quản lý secrets qua GitHub/Vercel/AWS. |
 
-- [Node.js](https://nodejs.org/en/download/) version 20.0 or above:
-  - When installing Node.js, you are recommended to check all checkboxes related to dependencies.
+## Kiến trúc tổng quát
 
-## Generate a new site
-
-Generate a new Docusaurus site using the **classic template**.
-
-The classic template will automatically be added to your project after you run the command:
-
-```bash
-npm init docusaurus@latest my-website classic
+```
+              ┌──────────────┐
+              │   GitHub     │
+              │  Repository  │
+              └──────┬───────┘
+                     │
+          ┌──────────▼──────────┐
+          │      CI/CD          │
+          │  (GitHub Actions,   │
+          │      Vercel)        │
+          └────────┬────────────┘
+                   │                Build & Deploy
+         ┌─────────▼──────────┐
+         │      Backend       │   HTTPS/API
+         │ (AWS EC2 + MongoDB │<────────────┐
+         │      Atlas)        │             │
+         └─────────┬──────────┘             │
+                   │                        │
+          ┌────────▼────────┐               │
+          │   Frontend      │───────────────┘
+          │   (Vercel)      │  CDN/SSL qua Cloudflare
+          └─────────────────┘
 ```
 
-You can type this command into Command Prompt, Powershell, Terminal, or any other integrated terminal of your code editor.
+## Nội dung tài liệu hạ tầng
 
-The command also installs all necessary dependencies you need to run Docusaurus.
+- **CI/CD**: Chi tiết pipeline deploy backend (AWS EC2), docs (GitHub Pages) và frontend (Vercel).
+- **Cloud**: Mô tả cấu hình AWS, MongoDB Atlas, Cloudflare và Vercel.
+- **Logging & Monitoring** *(roadmap)*: Tích hợp CloudWatch, log streaming.
+- **Security** *(roadmap)*: Chính sách bảo mật, secret management, backup.
 
-## Start your site
+## Quy trình vận hành chung
 
-Run the development server:
+1. Commit/push code lên GitHub.
+2. GitHub Actions build và deploy backend hoặc docs.
+3. Vercel tự động build và publish frontend.
+4. Cloudflare phân phối nội dung với SSL/TLS và firewall.
+5. MongoDB Atlas lưu trữ dữ liệu, EC2 chạy dịch vụ Spring Boot.
+6. Team theo dõi log, metrics và backup định kỳ.
 
-```bash
-cd my-website
-npm run start
-```
+## Tiêu chuẩn & best practices
 
-The `cd` command changes the directory you're working with. In order to work with your newly created Docusaurus site, you'll need to navigate the terminal there.
+- Sử dụng **Infrastructure as Code** (ghi chú roadmap Terraform/CloudFormation).
+- Quản lý secrets qua `GitHub Secrets`, `Vercel Environment Variables`, `AWS SSM` (tùy chọn).
+- Backup dữ liệu Atlas và snapshot EC2 theo chu kỳ.
+- Theo dõi chi phí cloud, tối ưu tài nguyên khi cần.
+- Định kỳ kiểm tra bảo mật (security audit, penetration test).
 
-The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
+## Lộ trình phát triển hạ tầng
 
-Open `docs/intro.md` (this page) and edit some lines: the site **reloads automatically** and displays your changes.
+- Thêm monitoring tập trung (Prometheus/Grafana, CloudWatch).
+- Tự động hóa backup và restore test.
+- Đa khu vực (multi-region) cho backend và database.
+- Triển khai container/kubernetes khi tải tăng.
+- Zero Trust access với Cloudflare Access hoặc IAM chi tiết.
+
+---
+
+Sử dụng các mục con để tìm hiểu chi tiết từng thành phần, từ pipeline triển khai cho tới cấu hình cloud cụ thể và kế hoạch mở rộng trong tương lai.
