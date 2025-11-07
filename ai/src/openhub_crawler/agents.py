@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from pathlib import Path
+from datetime import UTC, datetime
 from typing import Dict, Iterable, List, Sequence
 
 from .portals.base import CrawlStats, PortalConnector
@@ -13,6 +14,7 @@ from .portals.dongthap import DongThapConnector
 from .portals.hcm import HoChiMinhConnector
 from .portals.thanhhoa import ThanhHoaConnector
 from .storage import LocalDataRepository
+from .mongo_sink import MongoSink
 
 
 log = logging.getLogger(__name__)
@@ -20,13 +22,10 @@ log = logging.getLogger(__name__)
 
 @dataclass
 class AgentResult:
-    """Summary of a single connector run.
+    connector_slug: str
+    datasets_processed: int
+    resources_downloaded: int
 
-    Attributes:
-        connector_slug (str): Connector identifier slug.
-        datasets_processed (int): Number of datasets processed.
-        resources_downloaded (int): Number of resources downloaded.
-    """
 
 
 class AgentRegistry:
@@ -78,6 +77,7 @@ class CrawlAgentManager:
         """
         self.registry = AgentRegistry()
         self.repository_root = Path(repository_root) if repository_root else None
+        self.mongo_sink = MongoSink.from_env()
 
     def run_connectors(self, connector_slugs: Iterable[str]) -> List[AgentResult]:
         """Execute the specified connectors sequentially and collect statistics.
@@ -94,10 +94,15 @@ class CrawlAgentManager:
         results: List[AgentResult] = []
         for slug in connector_slugs:
             connector = self.registry.get(slug)
+            run_oid = self.mongo_sink.new_run_id() if self.mongo_sink else None
+            run_id = str(run_oid) if run_oid else None
+            self._configure_connector(connector, run_id)
             log.info("Running connector %s", connector.describe())
             repository_path = self._resolve_repository_path(slug)
             repository = LocalDataRepository(repository_path)
+            started_at = datetime.now(UTC)
             stats = self._run_connector(connector, repository)
+            finished_at = datetime.now(UTC)
             results.append(
                 AgentResult(
                     connector_slug=slug,
@@ -105,6 +110,24 @@ class CrawlAgentManager:
                     resources_downloaded=stats.resources_downloaded,
                 )
             )
+            self._configure_connector(connector, None)
+            if self.mongo_sink and run_oid is not None:
+                document = {
+                    "slug": slug,
+                    "connectors": [slug],
+                    "started_at": started_at.isoformat(),
+                    "finished_at": finished_at.isoformat(),
+                    "duration_seconds": (finished_at - started_at).total_seconds(),
+                    "results": [
+                        {
+                            "connector_slug": slug,
+                            "datasets_processed": stats.datasets_processed,
+                            "resources_downloaded": stats.resources_downloaded,
+                        }
+                    ],
+                    "storage_root": str(repository.root),
+                }
+                self.mongo_sink.log_crawl_run(run_oid, document)
         return results
 
     def _run_connector(self, connector: PortalConnector, repository: LocalDataRepository) -> CrawlStats:
@@ -139,6 +162,13 @@ class CrawlAgentManager:
         if self.repository_root:
             return self.repository_root / slug
         return Path("storage") / slug
+
+    def _configure_connector(self, connector: PortalConnector, run_id: str | None) -> None:
+        """Attach shared dependencies to connectors when available."""
+        if hasattr(connector, "attach_mongo_sink"):
+            connector.attach_mongo_sink(self.mongo_sink)
+        if hasattr(connector, "set_run_context"):
+            connector.set_run_context(run_id)
 
 
 __all__ = ["CrawlAgentManager", "AgentResult"]
