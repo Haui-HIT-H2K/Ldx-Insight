@@ -7,7 +7,7 @@ title: Slide 12 - Kết thúc & Q&A
 
 - Xin chân thành cảm ơn Ban Giám Khảo và Quý Thầy Cô đã theo dõi phần trình bày của đội.
 - Tên đội: **Nhóm HIT H2K – Đại học Công nghiệp Hà Nội**
-- Thành viên: Hoàng Nguyễn Huy • Nguyễn Ngọc Huyền • Trần Đức Huy
+- Thành viên: Hoàng Nguyễn Huy • Nguyễn Huy Hoàng • Trần Danh Khang
 - Mã nguồn & Tài liệu: https://github.com/Haui-HIT-NhoNguoiYeuCu/Ldx-Insight
 - Demo trực tuyến: https://ldx-insight.vercel.app
 
