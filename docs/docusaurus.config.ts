@@ -100,13 +100,13 @@ const config: Config = {
           activeBaseRegex: `/overview/`,
         },
         {
-          to: "/backend/intro",
+          to: "/backend/overview",
           label: "Backend",
           position: "left",
           activeBaseRegex: `/backend/`,
         },
         {
-          to: "/frontend/intro",
+          to: "/frontend/overview",
           label: "Frontend",
           position: "left",
           activeBaseRegex: `/frontend/`,
