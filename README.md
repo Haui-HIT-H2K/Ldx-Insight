@@ -64,7 +64,7 @@ graph TD;
     F -- "Lấy dữ liệu" --> C;
 
     F -- "Cung cấp API" --> J;
-    F -- "Cung cấp API" --> K;
+    K -- "Lấy dữ liệu" --> C;
     
 
     
