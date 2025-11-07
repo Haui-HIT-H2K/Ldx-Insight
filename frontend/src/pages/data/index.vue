@@ -154,7 +154,7 @@ const refresh = () => {
                 <NuxtLink
                   v-for="dataset in datasets"
                   :key="dataset.id"
-                  :to="`/datasets/${dataset.id}`"
+                  :to="`/data/${dataset.id}`"
                   class="block"
                 >
                   <div
