@@ -1,6 +1,8 @@
 import { themes as prismThemes } from "prism-react-renderer";
 import type { Config } from "@docusaurus/types";
 import type * as Preset from "@docusaurus/preset-classic";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
 
 const config: Config = {
   title: "Ldx-Insight",
@@ -14,6 +16,7 @@ const config: Config = {
   projectName: "Ldx-Insight",
 
   onBrokenLinks: "throw",
+
   i18n: {
     defaultLocale: "vi",
     locales: ["vi"],
@@ -24,6 +27,15 @@ const config: Config = {
 
   /** ✅ Thêm theme Mermaid */
   themes: ["@docusaurus/theme-mermaid"],
+
+  /** ✅ KaTeX CSS để render công thức toán */
+  stylesheets: [
+    {
+      href: "https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css",
+      type: "text/css",
+      // integrity/crossorigin có thể bổ sung nếu bạn muốn, nhưng để tránh lệch version thì có thể bỏ trống.
+    },
+  ],
 
   presets: [
     [
@@ -46,6 +58,8 @@ const config: Config = {
         path: "overview-docs",
         routeBasePath: "overview",
         sidebarPath: "./sidebarsOverview.ts",
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
       },
     ],
     [
@@ -55,6 +69,8 @@ const config: Config = {
         path: "backend-docs",
         routeBasePath: "backend",
         sidebarPath: "./sidebarsBackend.ts",
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
       },
     ],
     [
@@ -64,6 +80,8 @@ const config: Config = {
         path: "frontend-docs",
         routeBasePath: "frontend",
         sidebarPath: "./sidebarsFrontend.ts",
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
       },
     ],
     [
@@ -73,6 +91,8 @@ const config: Config = {
         path: "ml-ai-docs",
         routeBasePath: "ml-ai",
         sidebarPath: "./sidebarsMlAi.ts",
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
       },
     ],
     [
@@ -82,8 +102,22 @@ const config: Config = {
         path: "infrastructure-docs",
         routeBasePath: "infrastructure",
         sidebarPath: "./sidebarsInfrastructure.ts",
+        remarkPlugins: [remarkMath],
+        rehypePlugins: [rehypeKatex],
       },
     ],
+    // Nếu bạn có "presentation" như cấu hình trước đó, bật lại block dưới đây:
+    // [
+    //   "@docusaurus/plugin-content-docs",
+    //   {
+    //     id: "presentation",
+    //     path: "bai-thuyet-trinh",
+    //     routeBasePath: "presentation",
+    //     sidebarPath: "./sidebarsPresentation.ts",
+    //     remarkPlugins: [remarkMath],
+    //     rehypePlugins: [rehypeKatex],
+    //   },
+    // ],
   ],
 
   themeConfig: {
