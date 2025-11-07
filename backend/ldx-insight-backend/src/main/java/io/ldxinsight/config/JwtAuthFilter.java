@@ -1,11 +1,10 @@
 package io.ldxinsight.config;
 
 import io.ldxinsight.service.JwtService;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.ExpiredJwtException; 
+import io.jsonwebtoken.JwtException;    
 import io.jsonwebtoken.MalformedJwtException;
-import io.jsonwebtoken.security.SignatureException;
-import jakarta.servlet.FilterChain;
+import io.jsonwebtoken.security.SignatureException; 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -65,7 +64,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
-        } catch (ExpiredJwtException | MalformedJwtException | SignatureException | JwtException e) {
+        } catch (JwtException e) { 
         }
 
         filterChain.doFilter(request, response);
