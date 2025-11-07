@@ -6,10 +6,11 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Dict, Iterable, Iterator, List, Optional, Tuple
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Tuple
 
 import httpx
 
+from ..mongo_sink import MongoSink
 from ..storage import DownloadedResource, LocalDataRepository, classify_resource
 from ..transform import normalize_resource
 from .base import CrawlStats
@@ -218,6 +219,8 @@ class CkanConnector:
         self.slug = slug
         self.display_name = display_name
         self.client = CkanClient(base_url)
+        self.mongo_sink: MongoSink | None = None
+        self._current_run_id: str | None = None
 
     def describe(self) -> str:
         """Return a human readable description used in logs.
@@ -226,6 +229,19 @@ class CkanConnector:
             str: A string like "Portal Name (slug)".
         """
         return f"{self.display_name} ({self.slug})"
+
+    def attach_mongo_sink(self, sink: MongoSink | None) -> None:
+        """Attach a MongoDB sink for optional persistence."""
+        self.mongo_sink = sink
+
+    def set_run_context(self, run_id: str | None) -> None:
+        """Set the active crawl run identifier for downstream persistence."""
+        self._current_run_id = run_id
+
+    @property
+    def province_label(self) -> str:
+        """Return a province/portal label for persistence."""
+        return getattr(self, "province", self.display_name)
 
     def run_full_crawl(self, repository: LocalDataRepository) -> CrawlStats:
         """Execute a full crawl of the portal and persist metadata and resources.
@@ -257,12 +273,13 @@ class CkanConnector:
                     fetched_at=fetched_at,
                 )
                 for dataset in datasets:
-                    downloaded = self._download_dataset(repository, dataset)
+                    downloaded = self._download_dataset(repository, dataset, fetched_at)
                     repository.save_dataset_detail(
                         dataset.raw,
                         fetched_at=fetched_at,
                         resources=downloaded,
                     )
+                    self._persist_dataset_metadata(dataset, fetched_at)
                     stats.datasets_processed += 1
                     stats.resources_downloaded += len(downloaded)
         finally:
@@ -310,6 +327,7 @@ class CkanConnector:
         self,
         repository: LocalDataRepository,
         dataset: CkanDataset,
+        fetched_at: str,
     ) -> List[DownloadedResource]:
         """Download every resource for a dataset and normalize supported files.
 
@@ -358,15 +376,15 @@ class CkanConnector:
                     destination,
                     category,
                 )
-                downloaded.append(
-                    DownloadedResource(
-                        resource_id=str(resource_id),
-                        filename=name,
-                        category=category,
-                        local_path=destination,
-                        normalized_path=normalized_path,
-                    )
+                downloaded_record = DownloadedResource(
+                    resource_id=str(resource_id),
+                    filename=name,
+                    category=category,
+                    local_path=destination,
+                    normalized_path=normalized_path,
                 )
+                downloaded.append(downloaded_record)
+                self._persist_resource_metadata(dataset_id, resource, downloaded_record, fetched_at)
                 continue
             try:
                 downloaded_path = self.client.download_resource(resource, str(destination))
@@ -387,16 +405,86 @@ class CkanConnector:
                 Path(downloaded_path),
                 category,
             )
-            downloaded.append(
-                DownloadedResource(
-                    resource_id=str(resource_id),
-                    filename=name,
-                    category=category,
-                    local_path=destination,
-                    normalized_path=normalized_path,
-                )
+            downloaded_record = DownloadedResource(
+                resource_id=str(resource_id),
+                filename=name,
+                category=category,
+                local_path=destination,
+                normalized_path=normalized_path,
             )
+            downloaded.append(downloaded_record)
+            self._persist_resource_metadata(dataset_id, resource, downloaded_record, fetched_at)
         return downloaded
+
+    def _persist_dataset_metadata(self, dataset: CkanDataset, fetched_at: str) -> None:
+        """Persist dataset metadata into MongoDB when configured."""
+        if not self.mongo_sink or not self._current_run_id:
+            return
+        dataset_id = dataset.identifier
+        if not dataset_id:
+            return
+        payload = dataset._as_dict().copy()
+        payload.setdefault("dataUrl", self._dataset_page_url(dataset))
+        payload.setdefault("source", self._organization_name(dataset))
+        payload.setdefault(
+            "provider",
+            payload.get("maintainer") or payload.get("author") or payload["source"],
+        )
+        payload.setdefault("category", self._primary_group_name(dataset))
+        self.mongo_sink.upsert_dataset(
+            slug=self.slug,
+            province=self.province_label,
+            dataset_id=dataset_id,
+            dataset=payload,
+            fetched_at=fetched_at,
+            run_id=self._current_run_id,
+        )
+
+    def _persist_resource_metadata(
+        self,
+        dataset_id: str,
+        resource: Dict[str, Any],
+        downloaded: DownloadedResource,
+        fetched_at: str,
+    ) -> None:
+        """Persist resource metadata into MongoDB when configured."""
+        if not self.mongo_sink or not self._current_run_id:
+            return
+        self.mongo_sink.upsert_resource(
+            slug=self.slug,
+            province=self.province_label,
+            dataset_id=dataset_id,
+            resource=resource,
+            downloaded=downloaded,
+            fetched_at=fetched_at,
+            run_id=self._current_run_id,
+        )
+
+    def _dataset_page_url(self, dataset: CkanDataset) -> str:
+        """Return the public portal URL for a dataset."""
+        data = dataset._as_dict()
+        name = data.get("name") or dataset.identifier
+        return f"{self.client.base_url}/dataset/{name}"
+
+    @staticmethod
+    def _organization_name(dataset: CkanDataset) -> str:
+        """Derive the owning organization name if present."""
+        data = dataset._as_dict()
+        org = data.get("organization")
+        if isinstance(org, dict):
+            return org.get("title") or org.get("name") or ""
+        return data.get("author") or data.get("maintainer") or ""
+
+    @staticmethod
+    def _primary_group_name(dataset: CkanDataset) -> str | None:
+        """Return the first CKAN group title/name if available."""
+        data = dataset._as_dict()
+        groups = data.get("groups")
+        if isinstance(groups, list):
+            for group in groups:
+                if isinstance(group, dict):
+                    return group.get("title") or group.get("name")
+        return None
 
 
 __all__ = ["CkanConnector", "CkanClient"]
