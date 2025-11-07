@@ -40,7 +40,7 @@ public class SecurityConfig {
                         // 2. Cho phép API Đăng ký / Đăng nhập / Đăng xuất
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         // 3. Cho phép các API CÔNG KHAI
-                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/datasets/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/datasets/{id}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/datasets/category/{category}").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/datasets/{id}/view").permitAll()
