@@ -30,7 +30,6 @@ public class DatasetController {
 
     @Operation(summary = "Tìm kiếm (search) HOẶC lọc (filter) dataset")
     @GetMapping
-    @PreAuthorize("permitAll()")
     public ResponseEntity<Page<DatasetDto>> searchDatasets(
             @Parameter(description = "Từ khóa tìm kiếm (trong tiêu đề, mô tả)")
             @RequestParam(required = false) String q,
@@ -45,14 +44,12 @@ public class DatasetController {
 
     @Operation(summary = "Lấy chi tiết một Bộ dữ liệu bằng ID")
     @GetMapping("/{id}")
-    @PreAuthorize("permitAll()") 
     public ResponseEntity<DatasetDto> getDatasetById(@PathVariable String id) {
         return ResponseEntity.ok(datasetService.getDatasetById(id));
     }
 
     @Operation(summary = "Lấy danh sách dataset CHỈ theo category (API riêng)")
     @GetMapping("/category/{category}")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<Page<DatasetDto>> getDatasetsByCategory(
             @Parameter(description = "Tên category, ví dụ: 'Y tế'")
             @PathVariable String category,
@@ -64,8 +61,7 @@ public class DatasetController {
     }
     
     @Operation(summary = "Ghi nhận 1 lượt xem (tăng view count)")
-    @PostMapping("/{id}/view")
-    @PreAuthorize("permitAll()") 
+    @PostMapping("/{id}/view") 
     public ResponseEntity<Void> incrementView(@PathVariable String id) {
         datasetService.incrementViewCount(id);
         return ResponseEntity.ok().build();
@@ -73,7 +69,6 @@ public class DatasetController {
 
     @Operation(summary = "Tải file và ghi nhận 1 lượt tải (tăng download count)")
     @GetMapping("/{id}/download")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<Void> downloadAndIncrement(@PathVariable String id) {
         String downloadUrl = datasetService.getDownloadUrlAndIncrement(id);
         return ResponseEntity.status(HttpStatus.FOUND)

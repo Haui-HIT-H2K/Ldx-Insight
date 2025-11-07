@@ -30,7 +30,6 @@ public class AuthController {
 
     @Operation(summary = "Đăng ký tài khoản mới")
     @PostMapping("/register")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<AuthResponse> register(
             @Valid @RequestBody RegisterRequest request,
             HttpServletResponse response
@@ -47,7 +46,6 @@ public class AuthController {
 
     @Operation(summary = "Đăng nhập, lấy JWT Token (và set HttpOnly cookie)")
     @PostMapping("/login")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request,
             HttpServletResponse response
@@ -68,7 +66,6 @@ public class AuthController {
 
     @Operation(summary = "Đăng xuất (Xóa HttpOnly cookie)")
     @PostMapping("/logout")
-    @PreAuthorize("permitAll()")
     public ResponseEntity<?> logout() {
         // 1. Tạo một cookie "xóa" (rỗng, maxAge=0)
         HttpCookie clearCookie = jwtCookieService.clearJwtCookie();

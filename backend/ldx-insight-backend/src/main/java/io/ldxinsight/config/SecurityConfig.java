@@ -58,16 +58,17 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration cfg = new CorsConfiguration();
+        
         cfg.setAllowedOrigins(List.of("*"));
         
         cfg.setAllowCredentials(true);
         cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        cfg.setAllowedHeaders(List.of("*"));
+        cfg.setAllowedHeaders(List.of("*")); 
         cfg.setExposedHeaders(List.of("Authorization", "Content-Disposition", "X-Total-Count"));
         cfg.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", cfg); 
+        source.registerCorsConfiguration("/**", cfg);
         return source;
     }
 }
